@@ -69,6 +69,8 @@ import org.jfree.data.xy.XYDataset;
 public class Demo extends ApplicationFrame implements ActionListener {
 
 
+    static Color backgroundColor = Color.WHITE;
+
     public class ThroughputPlot {
 
         /** The time series data. */
@@ -111,9 +113,12 @@ public class Demo extends ApplicationFrame implements ActionListener {
             chart.getXYPlot().setDataset(1, new TimeSeriesCollection(HBaseSeries));
             chart.getXYPlot().setRenderer(1, new StandardXYItemRenderer());
             final ChartPanel chartPanel = new ChartPanel(chart);
+            chartPanel.setPreferredSize(new Dimension(300,200));
 //            chartPanel.setMaximumSize(new Dimension(30,30));
 //            chartPanel.setSize(new Dimension(30,30));
             startDataGenerator();
+            chart.getTitle().setPosition(RectangleEdge.BOTTOM);
+            chart.getTitle().setFont(new Font("SansSerif", java.awt.Font.BOLD, 16));
             return chartPanel;
         }
 
@@ -175,7 +180,6 @@ public class Demo extends ApplicationFrame implements ActionListener {
             chart.getLegend().setWidth(40);
             chart.getLegend().setPosition(RectangleEdge.TOP);
             chart.getLegend().setHorizontalAlignment(HorizontalAlignment.RIGHT);
-
             final XYPlot plot = chart.getXYPlot();
             ValueAxis axis = plot.getDomainAxis();
             axis.setAutoRange(true);
@@ -187,9 +191,13 @@ public class Demo extends ApplicationFrame implements ActionListener {
             chart.getXYPlot().setDataset(1, new TimeSeriesCollection(HBaseSeries));
             chart.getXYPlot().setRenderer(1, new StandardXYItemRenderer());
             final ChartPanel chartPanel = new ChartPanel(chart);
+            chartPanel.setPreferredSize(new Dimension(300,200));
 //            chartPanel.setMaximumSize(new Dimension(30,30));
 //            chartPanel.setSize(new Dimension(30,30));
             startDataGenerator();
+            chart.getTitle().setPosition(RectangleEdge.BOTTOM);
+            chart.getTitle().setFont(new Font("SansSerif", java.awt.Font.BOLD, 16));
+
             return chartPanel;
         }
 
@@ -233,31 +241,106 @@ public class Demo extends ApplicationFrame implements ActionListener {
 
 
 
-        final JPanel content = new JPanel(new BorderLayout());
-        content.add(new ThroughputPlot().getChart(), BorderLayout.WEST);
+        final JPanel content = new JPanel(new GridBagLayout());
 
-        final JSlider throughputSlider = new JSlider(100000,800000);
-        throughputSlider.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                 throughputSlider.getValue();
-            }
-        });
-        throughputSlider.setSize(100,20);
-        content.add(throughputSlider, BorderLayout.NORTH);
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.fill = GridBagConstraints.BOTH;
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.8;
+
+        content.add(new ThroughputPlot().getChart(), constraints);
+
+
+
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+        content.add(new ResponseTimePlot().getChart(), constraints);
+        content.setBackground(backgroundColor);
+//        content.setSize(new Dimension(1000,1000));
+
+// LEFT ///////
+
+        final JPanel leftConctrolJPanel = new JPanel(new GridBagLayout());
+        leftConctrolJPanel.setBackground(backgroundColor);
+
+        final JLabel insertionThroughputHeader = new JLabel();
+        insertionThroughputHeader.setText("Input Rate: (Tuples/s)");
+        insertionThroughputHeader.setHorizontalAlignment(SwingConstants.RIGHT);
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weighty = 0.4;
+        leftConctrolJPanel.add(insertionThroughputHeader, constraints);
 
 
         final JSpinner throughputSpinner = new JSpinner(new SpinnerNumberModel(500000,50000,1000000,50000));
-        throughputSpinner.setSize(100,20);
-        content.add(throughputSpinner, BorderLayout.NORTH);
+//        throughputSpinner.setSize(30,20);
+        constraints.gridx = 1;
+        constraints.gridy = 0;
+        constraints.weighty = 0.15;
+        throughputSpinner.setPreferredSize(new Dimension(80,30));
+        leftConctrolJPanel.add(throughputSpinner, constraints);
 
-        content.add(new ResponseTimePlot().getChart(), BorderLayout.EAST);
-        content.setBackground(Color.WHITE);
-//        content.setSize(new Dimension(1000,1000));
+
+        final JLabel insertionThroughputTail = new JLabel();
+        insertionThroughputTail.setText("    ");
+        constraints.gridx = 2;
+        constraints.gridy = 0;
+        constraints.weighty = 0.4;
+        leftConctrolJPanel.add(insertionThroughputTail, constraints);
+
+        final JCheckBox loadBalanceCheckBox = new JCheckBox();
+        loadBalanceCheckBox.setText("Dynamic Key Partitioning");
+        constraints.gridx = 3;
+        constraints.gridy = 0;
+        leftConctrolJPanel.add(loadBalanceCheckBox, constraints);
 
 
-        setContentPane(content);
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weighty = 0.1;
+        content.add(leftConctrolJPanel, constraints);
 
+
+        // RIGHT control pannel
+
+        final JPanel rightConctrolJPanel = new JPanel(new GridBagLayout());
+        rightConctrolJPanel.setBackground(backgroundColor);
+
+        String[] polices = {"Shuffle", "Hashing", "Task Queue Model"};
+        JSpinner dispatcherPolicySpinner = new JSpinner(new SpinnerListModel(polices));
+        ((JSpinner.DefaultEditor) dispatcherPolicySpinner.getEditor()).getTextField().setEditable(false);
+        dispatcherPolicySpinner.setPreferredSize(new Dimension(80, 30));
+        dispatcherPolicySpinner.setAlignmentX(SwingConstants.LEFT);
+
+
+        constraints.gridx = 4;
+        constraints.gridy = 0;
+        constraints.weighty = 0.3;
+        rightConctrolJPanel.add(dispatcherPolicySpinner, constraints);
+
+        JLabel policyLabel = new JLabel();
+        policyLabel.setText("            Dispatch Policy:");
+        constraints.gridx = 2;
+        constraints.gridy = 0;
+        policyLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        rightConctrolJPanel.add(policyLabel, constraints);
+
+        constraints.gridx = 1;
+        constraints.gridy = 0;
+        constraints.weighty = 0.1;
+        content.add(rightConctrolJPanel, constraints);
+
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Data Insertion", content);
+        tabbedPane.addTab("Query Evaluation", rightConctrolJPanel);
+        tabbedPane.setBackground(backgroundColor);
+
+//        setContentPane(content);
+//        setContentPane(rightConctrolJPanel);
+        setContentPane(tabbedPane);
     }
 
     /**
@@ -283,6 +366,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
         axis.setFixedAutoRange(30000.0);  // 60 seconds
         axis = plot.getRangeAxis();
         axis.setRange(0.0, 1000000);
+        result.getTitle().setPosition(RectangleEdge.BOTTOM);
         return result;
     }
 
@@ -323,8 +407,10 @@ public class Demo extends ApplicationFrame implements ActionListener {
      */
     public static void main(final String[] args) {
 
-        final Demo demo = new Demo("Dynamic Data Demo");
+        final Demo demo = new Demo("DITIR demonstration");
+//        demo.setResizable(false);
         demo.pack();
+        demo.setMinimumSize(demo.getPreferredSize());
         RefineryUtilities.centerFrameOnScreen(demo);
         demo.setVisible(true);
 //        demo.startDataGenerator();
