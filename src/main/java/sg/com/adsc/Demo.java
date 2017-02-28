@@ -40,14 +40,16 @@ package sg.com.adsc;
  */
 
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
-import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.*;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.JButton;
-import javax.swing.JPanel;
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -58,7 +60,6 @@ import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
-import org.jfree.ui.RefineryUtilities;
 
 /**
  * A demonstration application showing a time series chart where you can dynamically add
@@ -67,15 +68,158 @@ import org.jfree.ui.RefineryUtilities;
  */
 public class Demo extends ApplicationFrame implements ActionListener {
 
-    /** The time series data. */
-    private TimeSeries ourSeries;
 
-    private TimeSeries HBaseSeries;
+    public class ThroughputPlot {
 
-    /** The most recent value added. */
-    private double outLastValue = 800000;
+        /** The time series data. */
+        private TimeSeries ourSeries;
 
-    private double HBaseLastValue = 160000;
+        private TimeSeries HBaseSeries;
+
+        /** The most recent value added. */
+        private Double outLastValue = 800000.0;
+
+        private Double HBaseLastValue = 160000.0;
+
+        public ChartPanel getChart() {
+            this.ourSeries = new TimeSeries("DITIR", Millisecond.class);
+            this.HBaseSeries = new TimeSeries("HBase", Millisecond.class);
+            final TimeSeriesCollection ourDataset = new TimeSeriesCollection(this.ourSeries);
+
+            final JFreeChart chart = ChartFactory.createTimeSeriesChart(
+                    "Insertion Throughput Comparison",
+                    "Time",
+                    "Throughput\n(tuples / second)",
+                    ourDataset,
+                    true,
+                    true,
+                    false
+            );
+
+            chart.getLegend().setWidth(40);
+            chart.getLegend().setPosition(RectangleEdge.TOP);
+            chart.getLegend().setHorizontalAlignment(HorizontalAlignment.RIGHT);
+
+            final XYPlot plot = chart.getXYPlot();
+            ValueAxis axis = plot.getDomainAxis();
+            axis.setAutoRange(true);
+            axis.setFixedAutoRange(60000.0);  // 60 seconds
+            axis = plot.getRangeAxis();
+            axis.setRange(0.0, 1000000);
+
+
+            chart.getXYPlot().setDataset(1, new TimeSeriesCollection(HBaseSeries));
+            chart.getXYPlot().setRenderer(1, new StandardXYItemRenderer());
+            final ChartPanel chartPanel = new ChartPanel(chart);
+//            chartPanel.setMaximumSize(new Dimension(30,30));
+//            chartPanel.setSize(new Dimension(30,30));
+            startDataGenerator();
+            return chartPanel;
+        }
+
+        public void startDataGenerator() {
+
+            new Thread(new Runnable() {
+                public void run() {
+                    while(true) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        outLastValue = outLastValue + 50000 * (Math.random() - 0.5);
+                        HBaseLastValue = HBaseLastValue + 30000 * (Math.random() - 0.5);
+
+
+                        final Millisecond now = new Millisecond();
+                        ourSeries.add(now, outLastValue);
+                        HBaseSeries.add(now, HBaseLastValue);
+                    }
+                }
+            }).start();
+
+
+        }
+
+
+
+    }
+
+     public class ResponseTimePlot {
+
+        /** The time series data. */
+        private TimeSeries ourSeries;
+
+        private TimeSeries HBaseSeries;
+
+        /** The most recent value added. */
+        private Double outLastValue = 245.0;
+
+        private Double HBaseLastValue = 1200.0;
+
+        public ChartPanel getChart() {
+            this.ourSeries = new TimeSeries("DITIR", Millisecond.class);
+            this.HBaseSeries = new TimeSeries("HBase", Millisecond.class);
+            final TimeSeriesCollection ourDataset = new TimeSeriesCollection(this.ourSeries);
+
+            final JFreeChart chart = ChartFactory.createTimeSeriesChart(
+                    "Query Latency Comparison",
+                    "Time",
+                    "Latency\n(ms)",
+                    ourDataset,
+                    true,
+                    true,
+                    false
+            );
+
+            chart.getLegend().setWidth(40);
+            chart.getLegend().setPosition(RectangleEdge.TOP);
+            chart.getLegend().setHorizontalAlignment(HorizontalAlignment.RIGHT);
+
+            final XYPlot plot = chart.getXYPlot();
+            ValueAxis axis = plot.getDomainAxis();
+            axis.setAutoRange(true);
+            axis.setFixedAutoRange(30000.0);  // 60 seconds
+            axis = plot.getRangeAxis();
+            axis.setRange(0.0, 2000);
+
+
+            chart.getXYPlot().setDataset(1, new TimeSeriesCollection(HBaseSeries));
+            chart.getXYPlot().setRenderer(1, new StandardXYItemRenderer());
+            final ChartPanel chartPanel = new ChartPanel(chart);
+//            chartPanel.setMaximumSize(new Dimension(30,30));
+//            chartPanel.setSize(new Dimension(30,30));
+            startDataGenerator();
+            return chartPanel;
+        }
+
+        public void startDataGenerator() {
+
+            new Thread(new Runnable() {
+                public void run() {
+                    while(true) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        outLastValue = outLastValue + 200 * (Math.random() - 0.5);
+                        HBaseLastValue = HBaseLastValue + 400 * (Math.random() - 0.5);
+
+
+                        final Millisecond now = new Millisecond();
+                        ourSeries.add(now, outLastValue);
+                        HBaseSeries.add(now, HBaseLastValue);
+                    }
+                }
+            }).start();
+
+
+        }
+
+
+
+    }
 
     /**
      * Constructs a new demonstration application.
@@ -85,27 +229,33 @@ public class Demo extends ApplicationFrame implements ActionListener {
     public Demo(final String title) {
 
         super(title);
-        this.ourSeries = new TimeSeries("DITIR", Millisecond.class);
-        this.HBaseSeries = new TimeSeries("HBase", Millisecond.class);
-        final TimeSeriesCollection ourDataset = new TimeSeriesCollection(this.ourSeries);
-        final JFreeChart chart = createChart(ourDataset);
-        chart.getXYPlot().setDataset(1, new TimeSeriesCollection(HBaseSeries));
-        chart.getXYPlot().setRenderer(1, new StandardXYItemRenderer());
 
-        final ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setMaximumSize(new Dimension(30,30));
-        chartPanel.setSize(new Dimension(30,30));
-//        final JButton button = new JButton("Add New Data Item");
-//        button.setActionCommand("ADD_DATA");
-//        button.addActionListener(this);
+
+
 
         final JPanel content = new JPanel(new BorderLayout());
-        content.add(chartPanel, BorderLayout.WEST);
-        content.setSize(new Dimension(1000,1000));
-        content.add(new ChartPanel(chart), BorderLayout.EAST);
+        content.add(new ThroughputPlot().getChart(), BorderLayout.WEST);
 
-//        content.add(button, BorderLayout.SOUTH);
-//        chartPanel.setPreferredSize(new java.awt.Dimension(1000, 270));
+        final JSlider throughputSlider = new JSlider(100000,800000);
+        throughputSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                 throughputSlider.getValue();
+            }
+        });
+        throughputSlider.setSize(100,20);
+        content.add(throughputSlider, BorderLayout.NORTH);
+
+
+        final JSpinner throughputSpinner = new JSpinner(new SpinnerNumberModel(500000,50000,1000000,50000));
+        throughputSpinner.setSize(100,20);
+        content.add(throughputSpinner, BorderLayout.NORTH);
+
+        content.add(new ResponseTimePlot().getChart(), BorderLayout.EAST);
+        content.setBackground(Color.WHITE);
+//        content.setSize(new Dimension(1000,1000));
+
+
         setContentPane(content);
 
     }
@@ -130,7 +280,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
         final XYPlot plot = result.getXYPlot();
         ValueAxis axis = plot.getDomainAxis();
         axis.setAutoRange(true);
-        axis.setFixedAutoRange(60000.0);  // 60 seconds
+        axis.setFixedAutoRange(30000.0);  // 60 seconds
         axis = plot.getRangeAxis();
         axis.setRange(0.0, 1000000);
         return result;
@@ -154,32 +304,17 @@ public class Demo extends ApplicationFrame implements ActionListener {
      */
     public void actionPerformed(final ActionEvent e) {
         if (e.getActionCommand().equals("ADD_DATA")) {
-            this.outLastValue = this.outLastValue + 50000 * (Math.random() - 0.5);
-            this.HBaseLastValue = this.HBaseLastValue + 30000 * (Math.random() - 0.5);
-
-
-            final Millisecond now = new Millisecond();
-            this.ourSeries.add(now, this.outLastValue);
-            this.HBaseSeries.add(now, this.HBaseLastValue);
+//            this.outLastValue = this.outLastValue + 50000 * (Math.random() - 0.5);
+//            this.HBaseLastValue = this.HBaseLastValue + 30000 * (Math.random() - 0.5);
+//
+//
+//            final Millisecond now = new Millisecond();
+//            this.ourSeries.add(now, this.outLastValue);
+//            this.HBaseSeries.add(now, this.HBaseLastValue);
         }
     }
 
-    public void startDataGenerator() {
-        while(true) {
-            try {
-                Thread.sleep(500);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            this.outLastValue = this.outLastValue + 50000 * (Math.random() - 0.5);
-            this.HBaseLastValue = this.HBaseLastValue + 30000 * (Math.random() - 0.5);
 
-
-            final Millisecond now = new Millisecond();
-            this.ourSeries.add(now, this.outLastValue);
-            this.HBaseSeries.add(now, this.HBaseLastValue);
-        }
-    }
 
     /**
      * Starting point for the demonstration application.
@@ -192,7 +327,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
         demo.pack();
         RefineryUtilities.centerFrameOnScreen(demo);
         demo.setVisible(true);
-        demo.startDataGenerator();
+//        demo.startDataGenerator();
     }
 
 }
