@@ -108,7 +108,8 @@ public class Demo extends ApplicationFrame implements ActionListener {
             final TimeSeriesCollection ourDataset = new TimeSeriesCollection(this.ourSeries);
 
             final JFreeChart chart = ChartFactory.createTimeSeriesChart(
-                    "Insertion Throughput Comparison",
+//                    "Insertion Throughput Comparison",
+                    "",
                     "Time",
                     "Throughput\n(tuples / second)",
                     ourDataset,
@@ -129,6 +130,9 @@ public class Demo extends ApplicationFrame implements ActionListener {
             axis.setRange(0.0, 1000000);
 
 
+
+
+
             chart.getXYPlot().setDataset(1, new TimeSeriesCollection(HBaseSeries));
             chart.getXYPlot().setRenderer(1, new StandardXYItemRenderer());
             final ChartPanel chartPanel = new ChartPanel(chart);
@@ -138,6 +142,14 @@ public class Demo extends ApplicationFrame implements ActionListener {
             startDataGenerator();
             chart.getTitle().setPosition(RectangleEdge.TOP);
             chart.getTitle().setFont(new Font("SansSerif", java.awt.Font.BOLD, 16));
+
+
+            // set line size
+            int seriesCount = plot.getSeriesCount();
+            for (int i = 0; i < seriesCount; i++) {
+                plot.getRenderer().setSeriesStroke(i, new BasicStroke(2));
+            }
+
             return chartPanel;
         }
 
@@ -200,8 +212,9 @@ public class Demo extends ApplicationFrame implements ActionListener {
             }
 
             final JFreeChart chart = ChartFactory.createBarChart(
-                    "Query Latency Comparison",       // chart title
-                    "",               // domain axis label
+//                    "Query Latency Comparison",       // chart title
+                    "",
+                    "Query ID",               // domain axis label
                     "Query Latency (ms)",                  // range axis label
                     dataset,                  // data
                     PlotOrientation.VERTICAL, // the plot orientation
@@ -240,7 +253,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
             renderer.setDrawBarOutline(false);
             renderer.setGradientPaintTransformer(null);
             renderer.setMaximumBarWidth(0.15);
-            renderer.setItemMargin(0.5);
+            renderer.setItemMargin(0.1);
 
             final GradientPaint gp0 = new GradientPaint(
                     0.0f, 0.0f, Color.blue,
@@ -266,23 +279,24 @@ public class Demo extends ApplicationFrame implements ActionListener {
 
             final ChartPanel chartPanel = new ChartPanel(chart);
 
-
             new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    Integer queryId = 0;
                     while(true) {
+                        final double responseTimeOurs = (200 + 80 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05) * dispatchBenefit;
+                        final double responseTimeHBase = (300 + 633 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05);
+                        dataset.setValue(responseTimeOurs, "DITIR", queryId);
+                        dataset.setValue(responseTimeHBase, "HBase", queryId);
+
+                        dataset.removeValue("DITIR", queryId - numberOfHistoricalRecords);
+                        dataset.removeValue("HBase", queryId - numberOfHistoricalRecords);
+
+
+                        queryId ++;
+
                         try {
-
-                            final double responseTimeOurs = (300 + 200 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05 ) * dispatchBenefit;
-                            Thread.sleep((long)responseTimeOurs);
-
-                            for (Integer i = 0; i < numberOfHistoricalRecords - 1; i++) {
-                                double newValue = dataset.getValue("DITIR", i + 1).doubleValue();
-                                dataset.setValue(newValue, "DITIR", i);
-                            }
-
-                            dataset.setValue(responseTimeOurs, "DITIR", (Integer)(numberOfHistoricalRecords - 1));
-
+                            Thread.sleep(2000);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -290,29 +304,52 @@ public class Demo extends ApplicationFrame implements ActionListener {
                 }
             }).start();
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    while(true) {
-                        try {
-                            Thread.sleep(1000);
-                            final double responseTimeHBase = (500 + 800 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05);
-                            Thread.sleep((long)responseTimeHBase);
-
-                            for (Integer i = 0; i < numberOfHistoricalRecords - 1; i++) {
-                                double newValue = dataset.getValue("HBase", i + 1).doubleValue();
-                                dataset.setValue(newValue, "HBase", i);
-                            }
-
-
-                            dataset.setValue(responseTimeHBase, "HBase", (Integer)(numberOfHistoricalRecords - 1));
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }).start();
+//            new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    while(true) {
+//                        try {
+//
+//                            final double responseTimeOurs = (300 + 200 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05 ) * dispatchBenefit;
+//                            Thread.sleep((long)responseTimeOurs);
+//
+//                            for (Integer i = 0; i < numberOfHistoricalRecords - 1; i++) {
+//                                double newValue = dataset.getValue("DITIR", i + 1).doubleValue();
+//                                dataset.setValue(newValue, "DITIR", i);
+//                            }
+//
+//                            dataset.setValue(responseTimeOurs, "DITIR", (Integer)(numberOfHistoricalRecords - 1));
+//
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//            }).start();
+//
+//            new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    while(true) {
+//                        try {
+//                            Thread.sleep(1000);
+//                            final double responseTimeHBase = (500 + 800 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05);
+//                            Thread.sleep((long)responseTimeHBase);
+//
+//                            for (Integer i = 0; i < numberOfHistoricalRecords - 1; i++) {
+//                                double newValue = dataset.getValue("HBase", i + 1).doubleValue();
+//                                dataset.setValue(newValue, "HBase", i);
+//                            }
+//
+//
+//                            dataset.setValue(responseTimeHBase, "HBase", (Integer)(numberOfHistoricalRecords - 1));
+//
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//            }).start();
 
             return chartPanel;
         }
@@ -323,7 +360,8 @@ public class Demo extends ApplicationFrame implements ActionListener {
             final TimeSeriesCollection ourDataset = new TimeSeriesCollection(this.ourSeries);
 
             final JFreeChart chart = ChartFactory.createTimeSeriesChart(
-                    "Query Latency Comparison",
+//                    "Query Latency Comparison",
+                    "",
                     "Time",
                     "Latency\n(ms)",
                     ourDataset,
@@ -603,7 +641,8 @@ public class Demo extends ApplicationFrame implements ActionListener {
      */
     private JFreeChart createChart(final XYDataset dataset) {
         final JFreeChart result = ChartFactory.createTimeSeriesChart(
-                "Insertion Throughput Comparison",
+//                "Insertion Throughput Comparison",
+                "",
                 "Time",
                 "Throughput\n(tuples / second)",
                 dataset,
