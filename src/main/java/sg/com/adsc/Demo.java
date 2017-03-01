@@ -188,10 +188,16 @@ public class Demo extends ApplicationFrame implements ActionListener {
 
         private Double HBaseLastValue = 1200.0;
 
+        private int numberOfHistoricalRecords = 10;
+
         public ChartPanel getHistogramChart() {
             final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-            dataset.addValue(300.0, "HBase", "C1");
-            dataset.addValue(500.0, "DITIR", "C1");
+//            dataset.addValue(300.0, "HBase", "C1");
+//            dataset.addValue(500.0, "DITIR", "C1");
+            for (Integer i = 0; i < numberOfHistoricalRecords; i++) {
+                dataset.addValue(0.0, "HBase", i);
+                dataset.addValue(0.0, "DITIR", i);
+            }
 
             final JFreeChart chart = ChartFactory.createBarChart(
                     "Query Latency Comparison",       // chart title
@@ -214,7 +220,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
             final ValueAxis rangeAxis = plot.getRangeAxis();
             rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
 
-            plot.getDomainAxis().setVisible(false);
+            plot.getDomainAxis().setVisible(true);
 
 //            rangeAxis.setLowerMargin(0.15);
 //            rangeAxis.setUpperMargin(0.15);
@@ -234,6 +240,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
             renderer.setDrawBarOutline(false);
             renderer.setGradientPaintTransformer(null);
             renderer.setMaximumBarWidth(0.15);
+            renderer.setItemMargin(0.5);
 
             final GradientPaint gp0 = new GradientPaint(
                     0.0f, 0.0f, Color.blue,
@@ -268,7 +275,13 @@ public class Demo extends ApplicationFrame implements ActionListener {
 
                             final double responseTimeOurs = (300 + 200 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05 ) * dispatchBenefit;
                             Thread.sleep((long)responseTimeOurs);
-                            dataset.setValue(responseTimeOurs, "DITIR", "C1");
+
+                            for (Integer i = 0; i < numberOfHistoricalRecords - 1; i++) {
+                                double newValue = dataset.getValue("DITIR", i + 1).doubleValue();
+                                dataset.setValue(newValue, "DITIR", i);
+                            }
+
+                            dataset.setValue(responseTimeOurs, "DITIR", (Integer)(numberOfHistoricalRecords - 1));
 
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -283,10 +296,16 @@ public class Demo extends ApplicationFrame implements ActionListener {
                     while(true) {
                         try {
                             Thread.sleep(1000);
-
                             final double responseTimeHBase = (500 + 800 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05);
                             Thread.sleep((long)responseTimeHBase);
-                            dataset.setValue(responseTimeHBase, "HBase", "C1");
+
+                            for (Integer i = 0; i < numberOfHistoricalRecords - 1; i++) {
+                                double newValue = dataset.getValue("HBase", i + 1).doubleValue();
+                                dataset.setValue(newValue, "HBase", i);
+                            }
+
+
+                            dataset.setValue(responseTimeHBase, "HBase", (Integer)(numberOfHistoricalRecords - 1));
 
                         } catch (Exception e) {
                             e.printStackTrace();
