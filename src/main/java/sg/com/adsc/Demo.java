@@ -85,6 +85,10 @@ public class Demo extends ApplicationFrame implements ActionListener {
     Double inputRate = 100000.0;
     Boolean dynamicBalancing = false;
 
+    Double selectivity = 0.05;
+
+    Double dispatchBenefit = 1.0;
+
 
     public class ThroughputPlot {
 
@@ -246,6 +250,8 @@ public class Demo extends ApplicationFrame implements ActionListener {
                     CategoryLabelPositions.createUpRotationLabelPositions(Math.PI / 6.0)
             );
 
+            plot.getRangeAxis().setRange(0, 4000.0);
+
             chart.getLegend().setWidth(40);
             chart.getLegend().setPosition(RectangleEdge.TOP);
             chart.getLegend().setHorizontalAlignment(HorizontalAlignment.RIGHT);
@@ -259,8 +265,29 @@ public class Demo extends ApplicationFrame implements ActionListener {
                 public void run() {
                     while(true) {
                         try {
+
+                            final double responseTimeOurs = (300 + 200 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05 ) * dispatchBenefit;
+                            Thread.sleep((long)responseTimeOurs);
+                            dataset.setValue(responseTimeOurs, "DITIR", "C1");
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }).start();
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while(true) {
+                        try {
                             Thread.sleep(1000);
-                            dataset.setValue(500.0 + 100 * (Math.random() - 0.5), "DITIR", "C1");
+
+                            final double responseTimeHBase = (500 + 800 * (selectivity / 0.05)) * (1 + (Math.random() - 0.5) * 0.05);
+                            Thread.sleep((long)responseTimeHBase);
+                            dataset.setValue(responseTimeHBase, "HBase", "C1");
+
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -390,7 +417,18 @@ public class Demo extends ApplicationFrame implements ActionListener {
         throughputSpinner.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                 inputRate = (double)(int)throughputSpinner.getValue();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(1500);
+                        } catch (Exception ee) {
+                            ee.printStackTrace();
+                        }
+                        inputRate = (double)(int)throughputSpinner.getValue();
+                    }
+                }).start();
+
             }
         });
 //        ((JSpinner.DateEditor)throughputSpinner.getEditor()).getTextField().setHorizontalAlignment(SwingConstants.RIGHT);
@@ -426,11 +464,22 @@ public class Demo extends ApplicationFrame implements ActionListener {
         loadBalanceCheckBox.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                if (loadBalanceCheckBox.getValue().equals("Enabled"))
-                    dynamicBalancing = true;
-                else {
-                    dynamicBalancing = false;
-                }
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(2000);
+                        } catch (Exception ee) {
+                            ee.printStackTrace();
+                        }
+                        if (loadBalanceCheckBox.getValue().equals("Enabled"))
+                            dynamicBalancing = true;
+                        else {
+                            dynamicBalancing = false;
+                        }
+                    }
+                }).start();
+
             }
         });
         loadBalanceCheckBox.setBackground(backgroundColor);
@@ -457,7 +506,18 @@ public class Demo extends ApplicationFrame implements ActionListener {
         rightConctrolJPanel.setBackground(backgroundColor);
 
         String[] polices = {"Shuffle", "Hashing", "LATQM"};
-        JSpinner dispatcherPolicySpinner = new JSpinner(new SpinnerListModel(polices));
+        final JSpinner dispatcherPolicySpinner = new JSpinner(new SpinnerListModel(polices));
+        dispatcherPolicySpinner.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if (dispatcherPolicySpinner.getValue().equals("Shuffle"))
+                    dispatchBenefit = 1.0;
+                else if (dispatcherPolicySpinner.getValue().equals("Hashing"))
+                    dispatchBenefit = 0.87;
+                else
+                    dispatchBenefit = 0.74;
+            }
+        });
         ((JSpinner.DefaultEditor) dispatcherPolicySpinner.getEditor()).getTextField().setHorizontalAlignment(SwingConstants.RIGHT);
         ((JSpinner.DefaultEditor) dispatcherPolicySpinner.getEditor()).getTextField().setEditable(false);
         dispatcherPolicySpinner.setPreferredSize(new Dimension(120, 30));
@@ -483,7 +543,14 @@ public class Demo extends ApplicationFrame implements ActionListener {
         selectivityLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         rightConctrolJPanel.add(selectivityLabel, constraints);
 
-        JSpinner selectivitySpinner = new JSpinner(new SpinnerNumberModel(0.1, 0.05, 0.5, 0.05));
+        final JSpinner selectivitySpinner = new JSpinner(new SpinnerNumberModel(0.1, 0.05, 0.5, 0.05));
+        selectivitySpinner.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+
+                selectivity = (double)selectivitySpinner.getValue();
+            }
+        });
         ((JSpinner.DefaultEditor) selectivitySpinner.getEditor()).getTextField().setEditable(false);
         selectivitySpinner.setPreferredSize(new Dimension(120, 30));
         selectivitySpinner.setAlignmentX(SwingConstants.RIGHT);
