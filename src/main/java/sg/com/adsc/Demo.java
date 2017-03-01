@@ -45,8 +45,10 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
 import org.jfree.data.category.CategoryDataset;
+import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DatasetUtilities;
 import org.jfree.ui.*;
 
@@ -183,50 +185,88 @@ public class Demo extends ApplicationFrame implements ActionListener {
         private Double HBaseLastValue = 1200.0;
 
         public ChartPanel getHistogramChart() {
-            CategoryDataset dataset = DatasetUtilities.createCategoryDataset("a", "b", new Double[][]{{500.0,600.0}});
+            final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            dataset.addValue(300.0, "HBase", "C1");
+            dataset.addValue(500.0, "DITIR", "C1");
+
             final JFreeChart chart = ChartFactory.createBarChart(
-                    "Bar Chart Demo 3",       // chart title
-                    "Category",               // domain axis label
-                    "Value",                  // range axis label
+                    "Query Latency Comparison",       // chart title
+                    "",               // domain axis label
+                    "Query Latency (ms)",                  // range axis label
                     dataset,                  // data
                     PlotOrientation.VERTICAL, // the plot orientation
-                    false,                    // include legend
+                    true,                    // include legend
                     true,
                     false
             );
-            chart.setBackgroundPaint(Color.lightGray);
+
+            chart.setBackgroundPaint(Color.WHITE);
+
             final CategoryPlot plot = chart.getCategoryPlot();
             plot.setBackgroundPaint(Color.lightGray);
             plot.setDomainGridlinePaint(Color.white);
             plot.setRangeGridlinePaint(Color.white);
+
             final ValueAxis rangeAxis = plot.getRangeAxis();
             rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-            rangeAxis.setLowerMargin(0.15);
-            rangeAxis.setUpperMargin(0.15);
-            final ChartPanel chartPanel = new ChartPanel(chart);
-            chartPanel.setPreferredSize(plotDimension);
+
+            plot.getDomainAxis().setVisible(false);
+
+//            rangeAxis.setLowerMargin(0.15);
+//            rangeAxis.setUpperMargin(0.15);
+
+//            final ChartPanel chartPanel = new ChartPanel(chart);
+//            chartPanel.setPreferredSize(plotDimension);
 //            chartPanel.setMaximumSize(new Dimension(30,30));
 //            chartPanel.setSize(new Dimension(30,30));
-            startDataGenerator();
-            chart.getTitle().setPosition(RectangleEdge.TOP);
-            chart.getTitle().setFont(new Font("SansSerif", java.awt.Font.BOLD, 16));
+//            startDataGenerator();
+//
+//            chart.getTitle().setPosition(RectangleEdge.TOP);
+//            chart.getTitle().setFont(new Font("SansSerif", java.awt.Font.BOLD, 16));
+
+
             final BarRenderer renderer = (BarRenderer) plot.getRenderer();
+            renderer.setBarPainter(new StandardBarPainter());
             renderer.setDrawBarOutline(false);
+            renderer.setGradientPaintTransformer(null);
+            renderer.setMaximumBarWidth(0.15);
 
             final GradientPaint gp0 = new GradientPaint(
                     0.0f, 0.0f, Color.blue,
-                    0.0f, 0.0f, Color.blue
+                    0.0f, 0.0f, Color.lightGray
             );
             final GradientPaint gp1 = new GradientPaint(
                     0.0f, 0.0f, Color.green,
-                    0.0f, 0.0f, Color.green
+                    0.0f, 0.0f, Color.lightGray
             );
             renderer.setSeriesPaint(0, Color.BLUE);
-            renderer.setSeriesPaint(1, Color.GREEN);
+            renderer.setSeriesPaint(1, Color.RED);
             final CategoryAxis domainAxis = plot.getDomainAxis();
             domainAxis.setCategoryLabelPositions(
                     CategoryLabelPositions.createUpRotationLabelPositions(Math.PI / 6.0)
             );
+
+            chart.getLegend().setWidth(40);
+            chart.getLegend().setPosition(RectangleEdge.TOP);
+            chart.getLegend().setHorizontalAlignment(HorizontalAlignment.RIGHT);
+
+
+            final ChartPanel chartPanel = new ChartPanel(chart);
+
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while(true) {
+                        try {
+                            Thread.sleep(1000);
+                            dataset.setValue(500.0 + 100 * (Math.random() - 0.5), "DITIR", "C1");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }).start();
 
             return chartPanel;
         }
@@ -340,6 +380,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
         constraints.gridx = 1;
         constraints.gridy = 0;
         constraints.weightx = 0.0;
+        constraints.weighty = 0;
 //        constraints.weighty = 0.4;
         leftConctrolJPanel.add(insertionThroughputHeader, constraints);
 
@@ -358,7 +399,7 @@ public class Demo extends ApplicationFrame implements ActionListener {
 //        throughputSpinner.setSize(30,20);
         constraints.gridx = 2;
         constraints.gridy = 0;
-        constraints.weighty = 0.15;
+        constraints.weighty = 0.0;
         constraints.weightx = 0.00;
         throughputSpinner.setPreferredSize(new Dimension(120,30));
         leftConctrolJPanel.add(throughputSpinner, constraints);
@@ -392,9 +433,11 @@ public class Demo extends ApplicationFrame implements ActionListener {
                 }
             }
         });
+        loadBalanceCheckBox.setBackground(backgroundColor);
         loadBalanceCheckBox.setPreferredSize(new Dimension(120, 30));
         ((JSpinner.DefaultEditor)loadBalanceCheckBox.getEditor()).getTextField().setHorizontalAlignment(SwingConstants.RIGHT);
         ((JSpinner.DefaultEditor)loadBalanceCheckBox.getEditor()).getTextField().setEditable(false);
+        ((JSpinner.DefaultEditor)loadBalanceCheckBox.getEditor()).setBackground(backgroundColor);
         constraints.gridx = 2;
         constraints.gridy = 1;
 //        constraints.gridwidth = 2;
